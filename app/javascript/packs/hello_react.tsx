@@ -5,9 +5,10 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import gql from 'graphql-tag'
-import { ApolloProvider, useQuery } from '@apollo/client'
+import { ApolloProvider, useLazyQuery } from '@apollo/client'
 import { isEmpty } from 'lodash'
 import { client } from '../graphqlProvider'
+import { Button } from '@mui/material';
 
 const usersQuery = gql`
   query getAllUsers {
@@ -18,16 +19,24 @@ const usersQuery = gql`
   }
 `
 
-type HelloProps = {
-  name: string
-}
-
 
 
 const Hello = () => {
   // return <div>Testing</div>
   console.log("HERE1")
-  const { data, loading, error } = useQuery(usersQuery)
+  const [getUsers, { data, loading }] = useLazyQuery(usersQuery)
+
+  if (!data) {
+    return <div>
+      <div className="text-3xl font-bold underline text-red-300">
+        Hello world!
+      </div>
+      <Button variant="contained" color="primary" onClick={() => getUsers()}>
+        Get users
+      </Button>
+    </div>
+  }
+
   console.log("HERE2")
   if (loading) {
     console.log("HERE3")
@@ -38,11 +47,23 @@ const Hello = () => {
   const { users } = data
 
   if (isEmpty(users)) {
-    return <div> sorry no users </div>
+    return <div>
+      <Button variant="contained" color="primary" onClick={() => getUsers()}>
+        <div className="text-3xl font-bold underline text-red-300">
+          Get Users
+        </div>
+      </Button>
+      sorry no users
+    </div>
   }
 
   return (
     <div>
+      <Button variant="contained" color="primary" onClick={() => getUsers()}>
+        <div className="text-3xl font-bold underline text-red-300">
+          Get Users
+        </div>
+      </Button>
       {users.map(user =>
         <div>{user.id} {user.name} </div>
       )}
