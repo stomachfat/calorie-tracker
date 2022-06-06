@@ -9,6 +9,7 @@ import { ApolloProvider, useLazyQuery } from '@apollo/client'
 import { isEmpty } from 'lodash'
 import { client } from '../graphqlProvider'
 import { Button } from '@mui/material';
+import { GetAllUsersQuery, GetAllUsersQueryVariables } from 'graphql/types';
 
 const usersQuery = gql`
   query getAllUsers {
@@ -24,7 +25,7 @@ const usersQuery = gql`
 const Hello = () => {
   // return <div>Testing</div>
   console.log("HERE1")
-  const [getUsers, { data, loading }] = useLazyQuery(usersQuery)
+  const [getUsers, { data, loading }] = useLazyQuery<GetAllUsersQuery, GetAllUsersQueryVariables>(usersQuery)
 
   if (!data) {
     return <div>

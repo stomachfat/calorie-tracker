@@ -1,0 +1,18 @@
+type Mutation {
+  """
+  An example field added by the generator
+  """
+  testField: String!
+}
+
+type Query {
+  """
+  Users of Hey Honey!
+  """
+  users: [User!]!
+}
+
+type User {
+  id: ID!
+  name: String!
+}
