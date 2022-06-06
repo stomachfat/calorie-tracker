@@ -18,9 +18,15 @@
     "webpack-cli": "^3.3.12"
   },
   "devDependencies": {
-    "webpack-dev-server": "^3"
+    "@graphql-codegen/cli": "2.6.2",
+    "webpack-dev-server": "^3",
+    "@graphql-codegen/typescript-operations": "2.4.0",
+    "@graphql-codegen/typescript": "2.4.11",
+    "@graphql-codegen/typescript-react-apollo": "3.2.14"
   },
   "scripts": {
-    "dev": "./bin/webpack-dev-server"
+    "dev": "./bin/webpack-dev-server",
+    "gql:codegen": "graphql-codegen --config codegen.yml",
+    "full:codegen": "rake graphql:schema:dump && yarn gql:codegen"
   }
 }
