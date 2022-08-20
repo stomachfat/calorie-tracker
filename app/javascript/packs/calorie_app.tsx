@@ -13,6 +13,7 @@ import { AddFoodEntryMutation, AddFoodEntryMutationVariables, GetAllFoodEntiesAn
 import Login from './login';
 import { useRef, useState } from 'react';
 import { DateTime } from 'luxon';
+import axios from "axios";
 
 const usersQuery = gql`
   query getAllUsers {
@@ -303,6 +304,29 @@ const App = () => {
   const previousAuthData = localStorage.getItem("auth") && JSON.parse(localStorage.getItem("auth"))
   const [authData, setAuthData] = useState(previousAuthData)
 
+  const handleLogout = (event) => {
+
+    //Prevent page reload
+    event.preventDefault();
+
+    axios.delete(
+      '/auth/sign_out', {
+      headers: {
+        ...authData,
+      },
+    })
+      .then(function (response) {
+        console.log("logout rs", response)
+        setAuthData(response.headers)
+        localStorage.removeItem("auth")
+        window.location.reload()
+      })
+    // .catch(function (error) {
+    //   console.log(error);
+    // });
+
+  }
+
   if (isEmpty(authData)) {
     return <Login setAuthData={(args) => {
       const authHeaders = {
@@ -323,6 +347,7 @@ const App = () => {
     <FoodEntries />
     <AddFood />
     <MonthlySpending />
+    <button onClick={handleLogout}>Logout</button>
   </ApolloProvider>
 }
 
