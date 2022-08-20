@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  mount RailsAdmin::Engine, at: '/admin', as: 'rails_admin'
   mount_devise_token_auth_for 'User', at: 'auth'
   # Default route goes to home#index
   root to: "home#index"

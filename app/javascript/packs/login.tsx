@@ -12,8 +12,6 @@ const Login = ({ setAuthData }: { setAuthData: (headers: any) => void }) => {
     const email = emailInput.value
     const password = pass.value
 
-    console.log("username", email, password)
-
     axios.post('/auth/sign_in', {
       email: email,
       password,
