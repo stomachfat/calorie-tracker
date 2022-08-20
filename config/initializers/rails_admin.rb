@@ -42,8 +42,7 @@ RailsAdmin.config do |config|
 
   RailsAdmin.config do |config|
     config.authorize_with do |controller|
-      # TODO (jimmy): make admin user
-      redirect_to main_app.root_path unless current_user.id == 1
+      redirect_to main_app.root_path unless current_user.is_admin?
     end
   end
 end
