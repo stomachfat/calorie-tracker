@@ -1,7 +1,10 @@
 source "https://rubygems.org"
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-ruby "2.7.0"
+ruby "2.7.6"
+
+# Use Sass to process CSS
+gem "sassc-rails"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 7.0.3"
@@ -42,11 +45,11 @@ gem "tzinfo-data", platforms: %i[ mingw mswin x64_mingw jruby ]
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
-# Use Sass to process CSS
-# gem "sassc-rails"
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 # gem "image_processing", "~> 1.2"
+gem 'rack-cors', :require => 'rack/cors'
+gem 'devise_token_auth', git: "https://github.com/lynndylanhurley/devise_token_auth"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -72,8 +75,24 @@ group :test do
 end
 
 gem "graphql", "~> 2.0"
-gem "graphiql-rails", group: :development
+gem "graphiql-rails", git: "https://github.com/rmosolgo/graphiql-rails.git", branch: "master"
+
 
 gem "webpacker", "~> 5.4"
 
 gem "tailwindcss-rails", "~> 2.0"
+
+# New version released next week
+# @see https://github.com/activeadmin/activeadmin/issues/7196
+# gem 'activeadmin'
+
+# # Required for ActiveAdmin
+# gem 'sass-rails'
+
+# # Plus integrations with:
+# gem "devise"
+# gem 'cancancan'
+# gem 'draper'
+# gem 'pundit'
+
+gem "rails_admin", "~> 3.0"
