@@ -222,7 +222,9 @@ const AddFood = () => {
 
   const { data, loading } = useQuery<GetAllFoodEntiesAndUserLimitsQuery, GetAllFoodEntiesAndUserLimitsQueryVariables>(foodsEntriesAndUserLimitsQuery)
   const priceInputRef = useRef(null)
+  const calorieInputRef = useRef(null)
   const [priceInputValue, setPriceInputValue] = useState<number>(0)
+  const [calorieInputValue, setCalorieInputValue] = useState<number>(0)
 
   const handleOnChangePrice = (e) => {
     //Prevent page reload
@@ -232,14 +234,34 @@ const AddFood = () => {
     setPriceInputValue(moneyToCents(value))
   }
 
+  const handleOnChangeCalories = (e) => {
+    //Prevent page reload
+    e.preventDefault();
+
+    const value = e.currentTarget.value
+    setCalorieInputValue(Number(value))
+  }
+
   if (loading) {
     return <span>Loading your spending data...</span>
   }
 
   const { foodEntries } = data
-  const { user: { monthlySpendingLimitInCents } } = data
+  const { user: { monthlySpendingLimitInCents, dailyCalorieLimit } } = data
   const currentMonth = DateTime.local().month
-  const foodWithinCurrentMonth = filter(foodEntries, (entry) => DateTime.fromISO(entry.createdAt).month == currentMonth)
+  const currentDay = DateTime.local().day
+  const currentYear = DateTime.local().year
+  const foodWithinCurrentMonth = filter(foodEntries, (entry) => {
+    const createdAt = DateTime.fromISO(entry.createdAt)
+    return createdAt.month == currentMonth && createdAt.year == currentYear
+  })
+
+  const foodEntriesOfToday = filter(foodEntries, (entry) => {
+    const createdAt = DateTime.fromISO(entry.createdAt)
+    return createdAt.month == currentMonth && createdAt.year == currentYear && createdAt.day == currentDay
+  })
+  const totalCaloriesConsumedToday = foodEntriesOfToday.reduce((prev, curr) => prev + curr.calories, 0)
+  const overEaten = totalCaloriesConsumedToday > dailyCalorieLimit
 
 
   const totalSpendingForMonth = foodWithinCurrentMonth.reduce((prev, curr) => prev + curr.priceInCents, 0)
@@ -274,6 +296,8 @@ const AddFood = () => {
 
   const showOverBudgetWarning = overBudget
   const showAboutToBeOverBudget = !overBudget && !!priceInputValue && priceInputValue > difference
+  const showOverEatenWarning = overEaten
+  const showAboutToOverEat = !overEaten && (calorieInputValue + totalCaloriesConsumedToday > dailyCalorieLimit)
 
   return (
     <Card variant="outlined" sx={{ m: 4, }}>
@@ -284,9 +308,13 @@ const AddFood = () => {
               Add Food Entry
             </Typography>
             {showOverBudgetWarning && <Chip label={"YOU ARE ALREADY OVER YOUR MONTHLY BUDGET!"} color="error" />}
+            {showOverEatenWarning && <Chip label={"YOU ARE ALREADY OVER YOUR DAILY CALORIE LIMIT!"} color="error" />}
           </div>
           <Typography variant="body1" gutterBottom component="div" sx={{ p: 2, pb: 0 }}>
             <div>This month, you have spent ${centsToMoney(totalSpendingForMonth)}. {overBudget ? `You are over budget by $${differenceMoney}` : `You have $${differenceMoney} left before your $${centsToMoney(monthlySpendingLimitInCents)}`} limit</div>
+          </Typography>
+          <Typography variant="body1" gutterBottom component="div" sx={{ p: 2, pb: 0 }}>
+            <div>Today, you consumed {totalCaloriesConsumedToday} calories. {overEaten ? `You have consumed more than your limit!` : `You have ${dailyCalorieLimit - totalCaloriesConsumedToday} left before your ${dailyCalorieLimit}`} limit</div>
           </Typography>
         </Card>
         <Card variant="outlined" sx={{ m: 4, }}>
@@ -297,13 +325,14 @@ const AddFood = () => {
             </div>
             <div className="input-container">
               <label>Calories </label>
-              <input type="number" name="caloriesInput" required />
+              <input type="number" name="caloriesInput" required ref={calorieInputRef} onChange={handleOnChangeCalories} />
             </div>
+            {showAboutToOverEat && <Chip label="WITH THIS FOOD ENTRY YOU WILL GO OVER DAILY CALORIE LIMIT!" color="error" />}
             <div className="input-container">
               <label>Price (input 2.00 for $2.00) </label>
               <input type="number" name="priceInput" min="0.01" step="0.01" max="2500" required ref={priceInputRef} onChange={handleOnChangePrice} />
             </div>
-            {showAboutToBeOverBudget && <div>WITH THIS FOOD ENTRY YOU WILL GO OVER MONTHLY SPENDING BUDGET!</div>}
+            {showAboutToBeOverBudget && <Chip label="WITH THIS FOOD ENTRY YOU WILL GO OVER MONTHLY SPENDING BUDGET!" color="error" />}
             <div className="button-container">
               <input type="submit" />
             </div>
