@@ -1,24 +1,13 @@
 # README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+See video `Calorie App Overview`
 
-Things you may want to cover:
 
 * Ruby version
+2.7.6
 
-* System dependencies
+* Node
+v12.22.1
 
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+BE: run `rails s` 
+FE: run `yarn dev`
