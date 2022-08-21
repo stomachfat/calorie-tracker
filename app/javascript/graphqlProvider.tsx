@@ -9,7 +9,6 @@ import { isEmpty } from 'lodash'
 const csrfToken = document
   .querySelector('meta[name=csrf-token]')
   .getAttribute('content')
-console.log("csrfToken", csrfToken)
 
 let authData = null
 

@@ -75,54 +75,6 @@ const centsToMoney = (cents: number): string => {
 }
 
 
-
-const Users = () => {
-  const [getUsers, { data, loading }] = useLazyQuery<GetAllUsersQuery, GetAllUsersQueryVariables>(usersQuery)
-
-  if (!data) {
-    return <div>
-      <div className="text-3xl font-bold underline text-red-300">
-        Hello world!
-      </div>
-      <Button variant="contained" color="primary" onClick={() => getUsers()}>
-        Get users
-      </Button>
-    </div>
-  }
-
-  if (loading) {
-    return <span>Loading...</span>
-  }
-
-  const { users } = data
-
-  if (isEmpty(users)) {
-    return <div>
-      <Button variant="contained" color="primary" onClick={() => getUsers()}>
-        <div className="text-3xl font-bold underline text-red-300">
-          Get Users
-        </div>
-      </Button>
-      sorry no users
-    </div>
-  }
-
-  return (
-    <div>
-      <Button variant="contained" color="primary" onClick={() => getUsers()}>
-        <div className="text-3xl font-bold underline text-red-300">
-          Get Users
-        </div>
-      </Button>
-      {users.map(user =>
-        <div key={user.id}>{user.id} {user.fullName} {user.email} {user.userName} </div>
-      )}
-    </div>
-  )
-}
-
-
-
 const foodsEntriesAndUserLimitsQuery = gql`
   query getAllFoodEntiesAndUserLimits {
     foodEntries {
@@ -185,6 +137,9 @@ const FoodEntries = () => {
   const foodByDate = groupBy(filteredFoodEntries, (food) => {
     return DateTime.fromISO(food.createdAt).toLocaleString(DateTime.DATE_MED)
   })
+  const orderedFoodDates = keys(foodByDate).sort((d1, d2) => {
+    return DateTime.fromFormat(d2, "MMM d, yyyy").toMillis() - DateTime.fromFormat(d1, "MMM d, yyyy").toMillis()
+  })
 
   return (
     <div>
@@ -203,7 +158,7 @@ const FoodEntries = () => {
           </div>}
       </div>
       <span>Your food entries!</span>
-      {keys(foodByDate).map((date) => {
+      {orderedFoodDates.map((date) => {
         const foodEntriesOnDate = foodByDate[date]
         const totalCalorieOnDate = foodEntriesOnDate.reduce((prevVal, currVal) => prevVal + currVal.calories, 0)
         const exceedCalorieLimit = totalCalorieOnDate > dailyCalorieLimit
@@ -232,7 +187,34 @@ const FoodEntries = () => {
 }
 
 const AddFood = () => {
-  const [addFoodEntry, { loading }] = useMutation<AddFoodEntryMutation, AddFoodEntryMutationVariables>(addFoodEntryMutation)
+  const [addFoodEntry] = useMutation<AddFoodEntryMutation, AddFoodEntryMutationVariables>(addFoodEntryMutation)
+
+  const { data, loading } = useQuery<GetAllFoodEntiesAndUserLimitsQuery, GetAllFoodEntiesAndUserLimitsQueryVariables>(foodsEntriesAndUserLimitsQuery)
+  const priceInputRef = useRef(null)
+  const [priceInputValue, setPriceInputValue] = useState<number>(0)
+
+  const handleOnChangePrice = (e) => {
+    //Prevent page reload
+    e.preventDefault();
+
+    const value = e.currentTarget.value
+    setPriceInputValue(moneyToCents(value))
+  }
+
+  if (loading) {
+    return <span>Loading your spending data...</span>
+  }
+
+  const { foodEntries } = data
+  const { user: { monthlySpendingLimitInCents } } = data
+  const currentMonth = DateTime.local().month
+  const foodWithinCurrentMonth = filter(foodEntries, (entry) => DateTime.fromISO(entry.createdAt).month == currentMonth)
+
+
+  const totalSpendingForMonth = foodWithinCurrentMonth.reduce((prev, curr) => prev + curr.priceInCents, 0)
+  const overBudget = totalSpendingForMonth > monthlySpendingLimitInCents
+  const difference = monthlySpendingLimitInCents - totalSpendingForMonth
+  const differenceMoney = centsToMoney(Math.abs(difference))
 
   const handleAddFoodEntry = (event) => {
     //Prevent page reload
@@ -259,8 +241,11 @@ const AddFood = () => {
     <span> Adding your food entry...!</span>
   }
 
+  const showOverBudgetWarning = overBudget
+  const showAboutToBeOverBudget = !overBudget && !!priceInputValue && priceInputValue > difference
+
   return <div className="form">
-    <div>Add Food Entry</div>
+    <div>Add Food Entry {showOverBudgetWarning ? "YOU ARE ALREADY OVERBUDGET" : ""}</div>
     <form onSubmit={handleAddFoodEntry}>
       <div className="input-container">
         <label>Name </label>
@@ -272,32 +257,15 @@ const AddFood = () => {
       </div>
       <div className="input-container">
         <label>Price (e.g. 2.00) </label>
-        <input type="number" name="priceInput" min="0.01" step="0.01" max="2500" required />
+        <input type="number" name="priceInput" min="0.01" step="0.01" max="2500" required ref={priceInputRef} onChange={handleOnChangePrice} />
       </div>
+      {showAboutToBeOverBudget && <div>WITH THIS FOOD ENTRY YOU WILL GO OVER MONTHLY SPENDING BUDGET!</div>}
       <div className="button-container">
         <input type="submit" />
       </div>
     </form>
+    <div>You have spent ${centsToMoney(totalSpendingForMonth)}! {overBudget ? `You are over budget by $${differenceMoney}` : `You have $${differenceMoney} left before your $${centsToMoney(monthlySpendingLimitInCents)}`} limit</div>
   </div>
-}
-
-const MonthlySpending = () => {
-  const { data, loading } = useQuery<GetAllFoodEntiesAndUserLimitsQuery, GetAllFoodEntiesAndUserLimitsQueryVariables>(foodsEntriesAndUserLimitsQuery)
-
-  if (loading) {
-    return <span>Loading your spending data...</span>
-  }
-
-  const { foodEntries } = data
-  const { user: { monthlySpendingLimitInCents } } = data
-  const currentMonth = DateTime.local().month
-  const foodWithinCurrentMonth = filter(foodEntries, (entry) => DateTime.fromISO(entry.createdAt).month == currentMonth)
-
-  const totalSpendingForMonth = foodWithinCurrentMonth.reduce((prev, curr) => prev + curr.priceInCents, 0)
-  const overBudget = totalSpendingForMonth > monthlySpendingLimitInCents
-  const difference = centsToMoney(Math.abs(monthlySpendingLimitInCents - totalSpendingForMonth))
-
-  return <div>You have spent ${centsToMoney(totalSpendingForMonth)}! {overBudget ? `You are over budget by $${difference}` : `You have $${difference} left before your $${centsToMoney(monthlySpendingLimitInCents)}`} limit</div>
 }
 
 const App = () => {
@@ -305,7 +273,6 @@ const App = () => {
   const [authData, setAuthData] = useState(previousAuthData)
 
   const handleLogout = (event) => {
-
     //Prevent page reload
     event.preventDefault();
 
@@ -321,10 +288,6 @@ const App = () => {
         localStorage.removeItem("auth")
         window.location.reload()
       })
-    // .catch(function (error) {
-    //   console.log(error);
-    // });
-
   }
 
   if (isEmpty(authData)) {
@@ -343,12 +306,13 @@ const App = () => {
   }
 
   return <ApolloProvider client={getApolloClient(authData)}>
-    {/* <Users /> */}
-    <FoodEntries />
-    <AddFood />
-    <MonthlySpending />
-    <button onClick={handleLogout}>Logout</button>
-  </ApolloProvider>
+    <div>
+      <div>Your simple calorie tracker</div>
+      <FoodEntries />
+      <AddFood />
+      <button onClick={handleLogout}>Logout</button>
+    </div>
+  </ApolloProvider >
 }
 
 const container = document.createElement('div')
