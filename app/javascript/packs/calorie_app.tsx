@@ -8,12 +8,20 @@ import gql from 'graphql-tag'
 import { ApolloProvider, useLazyQuery, useMutation, useQuery } from '@apollo/client'
 import { isEmpty, groupBy, keys, filter } from 'lodash'
 import { client, getApolloClient, isAuthed } from '../graphqlProvider'
-import { Button } from '@mui/material';
+import { AppBar, Avatar, Box, Button, Card, CardHeader, Chip, Fab, Icon, IconButton, List, ListItem, ListItemAvatar, ListItemText, ListSubheader, Menu, Paper, Toolbar, Typography } from '@mui/material';
 import { AddFoodEntryMutation, AddFoodEntryMutationVariables, GetAllFoodEntiesAndUserLimitsQuery, GetAllFoodEntiesAndUserLimitsQueryVariables, GetAllFoodEntiesQuery, GetAllFoodEntiesQueryVariables, GetAllUsersQuery, GetAllUsersQueryVariables, GetUserLimitsQuery, GetUserLimitsQueryVariables } from 'graphql/types';
 import Login from './login';
 import { useRef, useState } from 'react';
 import { DateTime } from 'luxon';
 import axios from "axios";
+import styled from '@emotion/styled';
+import MenuIcon from '@mui/icons-material/Menu';
+import AddIcon from '@mui/icons-material/Add';
+import SearchIcon from '@mui/icons-material/Search';
+import LogoutIcon from '@mui/icons-material/Logout';
+import CelebrationIcon from '@mui/icons-material/Celebration';
+import NoFoodIcon from '@mui/icons-material/NoFood';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const usersQuery = gql`
   query getAllUsers {
@@ -144,44 +152,67 @@ const FoodEntries = () => {
   return (
     <div>
       <div>
-        <span>
-          Your Limits
-        </span>
-        {loading ? <div> Loading your limits </div> :
+        <Card variant="outlined" sx={{ m: 4, }}>
+          {loading ? <div> Loading your limits </div> :
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <Typography variant="h6" gutterBottom component="div" sx={{ p: 2, pb: 0 }}>
+                Daily Calorie Limit: {dailyCalorieLimit}
+              </Typography>
+              <Typography variant="h6" gutterBottom component="div" sx={{ p: 2, pb: 0 }}>
+                Monthly Spending Limit: ${centsToMoney(monthlySpendingLimitInCents)}
+              </Typography>
+            </div>}
+        </Card>
+      </div>
+      <Card variant="outlined" sx={{ m: 4, p: 4, mb: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-around" }}>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <span>
-              Your Daily Calorie Limit: {dailyCalorieLimit}
-            </span>
-            <span>
-              Your Monthly Spending Limit: {centsToMoney(monthlySpendingLimitInCents)}
-            </span>
-          </div>}
-      </div>
-      <span>Your food entries!</span>
-      {orderedFoodDates.map((date) => {
-        const foodEntriesOnDate = foodByDate[date]
-        const totalCalorieOnDate = foodEntriesOnDate.reduce((prevVal, currVal) => prevVal + currVal.calories, 0)
-        const exceedCalorieLimit = totalCalorieOnDate > dailyCalorieLimit
+            <label>From:</label>
+            <input type="date" id="start" ref={DateFromInputRef} max={toDate} onChange={handleFromDateChange} />
+          </div>
 
-        return <div key={date}>
-          <span>{date} Total calorie counts: {totalCalorieOnDate}, {exceedCalorieLimit ? "EXCEED LIMIT!" : "WITHIN LIMIT!"}</span>
-          {foodEntriesOnDate.map((food, index) => {
-            return (
-              <div key={food.id}>{index + 1}. {DateTime.fromISO(food.createdAt).toLocaleString(DateTime.TIME_WITH_SHORT_OFFSET)} {food.name}, {food.calories} calories, ${centsToMoney(food.priceInCents)} </div>
-            )
-          })}
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label>To:</label>
+            <input type="date" id="end" min={fromDate} ref={DateToInputRef} onChange={handleToDateChange} />
+          </div>
+
         </div>
-      })}
-      <div>
-        <div> filter</div>
-        <label>From:</label>
-        <input type="date" id="start" ref={DateFromInputRef} max={toDate} onChange={handleFromDateChange} />
+      </Card>
+      <List sx={{ mb: 2 }}>
+        {orderedFoodDates.map((date) => {
+          const foodEntriesOnDate = foodByDate[date]
+          const totalCalorieOnDate = foodEntriesOnDate.reduce((prevVal, currVal) => prevVal + currVal.calories, 0)
+          const exceedCalorieLimit = totalCalorieOnDate > dailyCalorieLimit
 
-        <label>To:</label>
-        <input type="date" id="end" min={fromDate} ref={DateToInputRef} onChange={handleToDateChange} />
+          return (<React.Fragment key={date}>
+            <Card variant="outlined" sx={{ m: 4, }}>
+              <ListSubheader sx={{ bgcolor: 'background.paper' }}>
+                <div style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
+                  {exceedCalorieLimit ? <NoFoodIcon color='error' /> : <CelebrationIcon color="success" />}
+                  <Chip label={exceedCalorieLimit ? "EXCEEDED LIMIT!" : "WITHIN LIMIT!"} sx={{ ml: 2 }} color={exceedCalorieLimit ? "error" : "success"} />
+                  <Chip label={`${totalCalorieOnDate} total calories`} sx={{ ml: 2 }} color={exceedCalorieLimit ? "error" : "success"} />
 
-      </div>
-
+                  <Box sx={{ flex: 1 }} />
+                  <div>{date} </div>
+                </div>
+              </ListSubheader>
+              <List sx={{ mb: 2 }}>
+                <ListSubheader sx={{ bgcolor: 'background.paper' }}>
+                  {foodEntriesOnDate.map((food, index) => {
+                    return (
+                      <div key={food.id} style={{ display: "flex", justifyContent: "space-between" }}>
+                        <div > {food.calories} calories - {food.name} (${centsToMoney(food.priceInCents)})</div>
+                        <div>{DateTime.fromISO(food.createdAt).toLocaleString(DateTime.TIME_SIMPLE)}</div>
+                      </div>
+                    )
+                  })}
+                </ListSubheader>
+              </List>
+            </Card>
+          </React.Fragment>
+          )
+        })}
+      </List>
     </div>
   )
 }
@@ -244,33 +275,59 @@ const AddFood = () => {
   const showOverBudgetWarning = overBudget
   const showAboutToBeOverBudget = !overBudget && !!priceInputValue && priceInputValue > difference
 
-  return <div className="form">
-    <div>Add Food Entry {showOverBudgetWarning ? "YOU ARE ALREADY OVERBUDGET" : ""}</div>
-    <form onSubmit={handleAddFoodEntry}>
-      <div className="input-container">
-        <label>Name </label>
-        <input type="text" name="nameInput" required />
+  return (
+    <Card variant="outlined" sx={{ m: 4, }}>
+      <div className="form" style={{ padding: 4 }}>
+        <Card variant="outlined" sx={{ m: 4, }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Typography variant="h5" gutterBottom component="div" sx={{ p: 2, pb: 0 }}>
+              Add Food Entry
+            </Typography>
+            {showOverBudgetWarning && <Chip label={"YOU ARE ALREADY OVER YOUR MONTHLY BUDGET!"} color="error" />}
+          </div>
+          <Typography variant="body1" gutterBottom component="div" sx={{ p: 2, pb: 0 }}>
+            <div>This month, you have spent ${centsToMoney(totalSpendingForMonth)}. {overBudget ? `You are over budget by $${differenceMoney}` : `You have $${differenceMoney} left before your $${centsToMoney(monthlySpendingLimitInCents)}`} limit</div>
+          </Typography>
+        </Card>
+        <Card variant="outlined" sx={{ m: 4, }}>
+          <form onSubmit={handleAddFoodEntry}>
+            <div className="input-container">
+              <label>Name </label>
+              <input type="text" name="nameInput" required />
+            </div>
+            <div className="input-container">
+              <label>Calories </label>
+              <input type="number" name="caloriesInput" required />
+            </div>
+            <div className="input-container">
+              <label>Price (input 2.00 for $2.00) </label>
+              <input type="number" name="priceInput" min="0.01" step="0.01" max="2500" required ref={priceInputRef} onChange={handleOnChangePrice} />
+            </div>
+            {showAboutToBeOverBudget && <div>WITH THIS FOOD ENTRY YOU WILL GO OVER MONTHLY SPENDING BUDGET!</div>}
+            <div className="button-container">
+              <input type="submit" />
+            </div>
+          </form>
+        </Card>
       </div>
-      <div className="input-container">
-        <label>Calories </label>
-        <input type="number" name="caloriesInput" required />
-      </div>
-      <div className="input-container">
-        <label>Price (e.g. 2.00) </label>
-        <input type="number" name="priceInput" min="0.01" step="0.01" max="2500" required ref={priceInputRef} onChange={handleOnChangePrice} />
-      </div>
-      {showAboutToBeOverBudget && <div>WITH THIS FOOD ENTRY YOU WILL GO OVER MONTHLY SPENDING BUDGET!</div>}
-      <div className="button-container">
-        <input type="submit" />
-      </div>
-    </form>
-    <div>You have spent ${centsToMoney(totalSpendingForMonth)}! {overBudget ? `You are over budget by $${differenceMoney}` : `You have $${differenceMoney} left before your $${centsToMoney(monthlySpendingLimitInCents)}`} limit</div>
-  </div>
+    </Card>
+  )
 }
+
+const StyledFab = styled(Fab)({
+  position: 'absolute',
+  zIndex: 1,
+  top: -30,
+  left: 0,
+  right: 0,
+  margin: '0 auto',
+});
+
 
 const App = () => {
   const previousAuthData = localStorage.getItem("auth") && JSON.parse(localStorage.getItem("auth"))
   const [authData, setAuthData] = useState(previousAuthData)
+  const [currentView, setCurrentView] = useState<"FOOD_ENTRIES" | "ADD_FOOD">("FOOD_ENTRIES")
 
   const handleLogout = (event) => {
     //Prevent page reload
@@ -283,7 +340,6 @@ const App = () => {
       },
     })
       .then(function (response) {
-        console.log("logout rs", response)
         setAuthData(response.headers)
         localStorage.removeItem("auth")
         window.location.reload()
@@ -306,12 +362,42 @@ const App = () => {
   }
 
   return <ApolloProvider client={getApolloClient(authData)}>
-    <div>
-      <div>Your simple calorie tracker</div>
-      <FoodEntries />
-      <AddFood />
-      <button onClick={handleLogout}>Logout</button>
-    </div>
+    <Card>
+      <Paper square sx={{ pb: '100px' }}>
+        <Card variant="outlined" sx={{ m: 4, }}>
+          <Typography variant="h5" gutterBottom component="div" sx={{ p: 2, pb: 0 }}>
+            Your Simple Calorie Tracker
+          </Typography>
+        </Card>
+        {currentView == "FOOD_ENTRIES" && <FoodEntries />}
+        {currentView == "ADD_FOOD" && <AddFood />}
+      </Paper>
+      <AppBar position="fixed" color="primary" sx={{ top: 'auto', bottom: 0 }}>
+        <Toolbar>
+          <IconButton color="inherit">
+            <LogoutIcon onClick={handleLogout} />
+          </IconButton>
+
+          <div onClick={() => {
+            if (currentView == "FOOD_ENTRIES") {
+              setCurrentView("ADD_FOOD")
+              return
+            }
+
+            if (currentView == "ADD_FOOD") {
+              setCurrentView("FOOD_ENTRIES")
+              return
+            }
+          }} >
+            <StyledFab color="secondary" aria-label="add">
+              {currentView == "FOOD_ENTRIES" && <AddIcon />}
+              {currentView == "ADD_FOOD" && <ArrowBackIcon />}
+            </StyledFab>
+          </div>
+          <Box sx={{ flexGrow: 1 }} />
+        </Toolbar>
+      </AppBar>
+    </Card>
   </ApolloProvider >
 }
 
